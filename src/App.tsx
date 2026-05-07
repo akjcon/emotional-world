@@ -104,14 +104,63 @@ export function App() {
     };
   }, []);
 
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraInitialized = useRef(false);
+  const wasModalOpenRef = useRef(false);
+
+  // Pause auto-rotate now; optionally schedule a resume after `resumeAfterMs`.
+  // Pass null to pause indefinitely.
+  const pauseAutoRotate = (resumeAfterMs: number | null = 10_000) => {
+    const controls = globeRef.current?.controls();
+    if (!controls) return;
+    controls.autoRotate = false;
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    if (resumeAfterMs != null) {
+      resumeTimerRef.current = setTimeout(() => {
+        const c = globeRef.current?.controls();
+        if (c) c.autoRotate = true;
+      }, resumeAfterMs);
+    }
+  };
+
+  // Initial camera + auto-rotate setup, plus interaction listener.
+  // Camera position is only set once, so opening/closing the modal doesn't
+  // snap the globe back to its starting view.
   useEffect(() => {
     if (!globeRef.current || !features.length) return;
-    globeRef.current.controls().autoRotate = !selected;
-    globeRef.current.controls().autoRotateSpeed = 0.22;
-    if (!selected) {
+    const controls = globeRef.current.controls();
+    controls.autoRotateSpeed = 0.22;
+    if (!cameraInitialized.current) {
+      cameraInitialized.current = true;
+      controls.autoRotate = true;
       globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.4 });
     }
-  }, [features.length, selected]);
+    const onInteractionStart = () => pauseAutoRotate(10_000);
+    controls.addEventListener('start', onInteractionStart);
+    return () => {
+      controls.removeEventListener('start', onInteractionStart);
+    };
+  }, [features.length]);
+
+  // Modal state drives auto-rotate: indefinite pause while open, 10s after close.
+  useEffect(() => {
+    if (selected) {
+      wasModalOpenRef.current = true;
+      pauseAutoRotate(null);
+    } else if (wasModalOpenRef.current) {
+      wasModalOpenRef.current = false;
+      pauseAutoRotate(10_000);
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    return () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
 
   const rankings = useMemo(() => buildRankings(stats), [stats]);
 
