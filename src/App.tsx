@@ -6,6 +6,10 @@ import {
   type CountryStats,
   type Dataset,
 } from './data';
+import { CountryModal } from './components/CountryModal';
+import { sparklineSvg } from './lib/sparkline';
+import { buildRankings } from './lib/rankings';
+import { escapeHtml, formatRelativeTimestamp } from './lib/format';
 
 const COUNTRIES_GEOJSON =
   'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
@@ -18,6 +22,8 @@ type Feature = {
     NAME?: string;
     ISO_A3?: string;
     ISO_A3_EH?: string;
+    ISO_A2?: string;
+    ISO_A2_EH?: string;
     [k: string]: unknown;
   };
   geometry: { type: string; coordinates: unknown };
@@ -28,6 +34,14 @@ function isoOf(f: Feature): string {
   const a3 = f.properties.ISO_A3;
   if (eh && eh !== '-99') return eh;
   if (a3 && a3 !== '-99') return a3;
+  return '';
+}
+
+function iso2Of(f: Feature): string {
+  const eh = f.properties.ISO_A2_EH;
+  const a2 = f.properties.ISO_A2;
+  if (eh && eh !== '-99') return eh;
+  if (a2 && a2 !== '-99') return a2;
   return '';
 }
 
@@ -62,6 +76,10 @@ export function App() {
     w: window.innerWidth,
     h: window.innerHeight,
   });
+  const [selected, setSelected] = useState<{
+    feature: Feature;
+    stats: CountryStats;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +95,6 @@ export function App() {
         setStats(buildIndex(d));
         setGeneratedAt(d.generatedAt);
       });
-
     const onResize = () =>
       setSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', onResize);
@@ -88,12 +105,15 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (globeRef.current && features.length) {
-      globeRef.current.controls().autoRotate = true;
-      globeRef.current.controls().autoRotateSpeed = 0.25;
+    if (!globeRef.current || !features.length) return;
+    globeRef.current.controls().autoRotate = !selected;
+    globeRef.current.controls().autoRotateSpeed = 0.22;
+    if (!selected) {
       globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.4 });
     }
-  }, [features.length]);
+  }, [features.length, selected]);
+
+  const rankings = useMemo(() => buildRankings(stats), [stats]);
 
   const rings = useMemo(() => {
     const out: { lat: number; lng: number; iso: string; z: number }[] = [];
@@ -114,21 +134,62 @@ export function App() {
     return { matched, total: features.length };
   }, [features, stats]);
 
+  const polygonLabel = (d: object) => {
+    const f = d as Feature;
+    const name = f.properties.ADMIN ?? f.properties.NAME ?? 'Unknown';
+    const iso = isoOf(f);
+    const s = stats.get(iso);
+    if (!s) {
+      return `<div class="tooltip"><div class="tt-name">${escapeHtml(name)}</div><div class="tt-empty">no GDELT data</div></div>`;
+    }
+    const r = rankings.get(iso);
+    const sign = s.change7d > 0 ? '+' : '';
+    const changeClass =
+      s.change7d > 0.05
+        ? 'tt-pos'
+        : s.change7d < -0.05
+          ? 'tt-neg'
+          : 'tt-flat';
+    const sparkColor =
+      s.change7d > 0.05
+        ? 'rgba(34, 197, 94, 0.9)'
+        : s.change7d < -0.05
+          ? 'rgba(239, 68, 68, 0.9)'
+          : 'rgba(255, 255, 255, 0.7)';
+    const rankLine = r
+      ? `<div class="tt-row"><span>#${r.rank} most ${r.side}</span><span class="tt-mute tabular">/ ${r.total}</span></div>`
+      : '';
+    const swatch = `<span class="tt-swatch" style="background:${toneColor(s.latest, 1)}"></span>`;
+    return (
+      `<div class="tooltip">` +
+      `<div class="tt-name">${swatch}${escapeHtml(name)}</div>` +
+      `<div class="tt-tone tabular" style="color:${toneColor(s.latest, 1)}">${s.latest.toFixed(2)}</div>` +
+      rankLine +
+      `<div class="tt-row tabular"><span>7 day change</span><b class="${changeClass}">${sign}${s.change7d.toFixed(2)}</b></div>` +
+      `<div class="tt-spark">${sparklineSvg(s.hours.map((h) => h.tone), { w: 200, h: 30, color: sparkColor })}</div>` +
+      `<div class="tt-row tabular"><span>articles / hr</span><b>${s.articleCount}</b></div>` +
+      `<div class="tt-hint">click for stories</div>` +
+      `</div>`
+    );
+  };
+
   return (
     <>
-      <div className="hud">
+      <header className="hud" aria-label="App description and freshness">
         <h1>Emotional World</h1>
-        <div>Hourly media tone, last 7 days, by country.</div>
-        <div className="meta">
+        <p className="hud-sub">
+          Hourly media tone, last 7 days, by country.
+        </p>
+        <p className="meta tabular">
           {generatedAt
-            ? `${new Date(generatedAt).toLocaleString()} · ${coverage.matched}/${coverage.total} countries`
-            : 'Loading…'}
-        </div>
-      </div>
+            ? `updated ${formatRelativeTimestamp(generatedAt)} · ${coverage.matched}/${coverage.total} countries`
+            : 'loading…'}
+        </p>
+      </header>
 
-      <div className="legend">
-        <div className="ramp" />
-        <div className="ticks">
+      <div className="legend" aria-label="Legend">
+        <div className="ramp" aria-hidden="true" />
+        <div className="ticks tabular">
           <span>−10</span>
           <span>0</span>
           <span>+10</span>
@@ -149,43 +210,45 @@ export function App() {
         polygonAltitude={0.008}
         polygonCapColor={(d: object) => {
           const s = stats.get(isoOf(d as Feature));
-          if (!s) return 'rgba(60, 60, 65, 0.35)';
+          if (!s) return 'rgba(60, 60, 65, 0.32)';
           return toneColor(s.latest);
         }}
         polygonSideColor={() => 'rgba(0, 0, 0, 0.15)'}
         polygonStrokeColor={() => 'rgba(255, 255, 255, 0.12)'}
-        polygonLabel={(d: object) => {
-          const f = d as Feature;
-          const name = f.properties.ADMIN ?? f.properties.NAME ?? 'Unknown';
-          const iso = isoOf(f);
-          const s = stats.get(iso);
-          if (!s) {
-            return `<div class="tooltip"><div class="name">${name}</div>
-              <div class="row">no GDELT data</div></div>`;
-          }
-          const sign = s.velocity > 0 ? '+' : '';
-          return `<div class="tooltip">
-            <div class="name">${name}</div>
-            <div class="row"><span>tone</span><b>${s.latest.toFixed(2)}</b></div>
-            <div class="row"><span>7d mean</span><b>${s.mean.toFixed(2)}</b></div>
-            <div class="row"><span>z-score</span><b>${s.zScore.toFixed(2)}</b></div>
-            <div class="row"><span>6h Δ</span><b>${sign}${s.velocity.toFixed(2)}</b></div>
-            <div class="row"><span>articles/hr</span><b>${s.articleCount}</b></div>
-          </div>`;
-        }}
+        polygonLabel={polygonLabel}
         polygonsTransitionDuration={300}
+        onPolygonClick={(d: object) => {
+          const f = d as Feature;
+          const s = stats.get(isoOf(f));
+          if (s) setSelected({ feature: f, stats: s });
+        }}
         ringsData={rings}
         ringColor={(r: object) => {
           const z = (r as { z: number }).z;
           return z > 0
             ? (t: number) => `rgba(34, 197, 94, ${1 - t})`
-            : (t: number) => `rgba(214, 39, 40, ${1 - t})`;
+            : (t: number) => `rgba(239, 68, 68, ${1 - t})`;
         }}
         ringMaxRadius={4}
         ringPropagationSpeed={2}
         ringRepeatPeriod={1500}
         ringAltitude={0.012}
       />
+
+      {selected && (
+        <CountryModal
+          iso={isoOf(selected.feature)}
+          iso2={iso2Of(selected.feature)}
+          name={
+            selected.feature.properties.ADMIN ??
+            selected.feature.properties.NAME ??
+            'Unknown'
+          }
+          stats={selected.stats}
+          rank={rankings.get(isoOf(selected.feature))}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </>
   );
 }

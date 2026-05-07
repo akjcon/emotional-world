@@ -43,3 +43,13 @@ export const FIPS_TO_ISO = {
   US: 'USA', UY: 'URY', UZ: 'UZB', NH: 'VUT', VT: 'VAT', VE: 'VEN',
   VM: 'VNM', YM: 'YEM', ZA: 'ZMB', ZI: 'ZWE',
 };
+
+/** ISO 3166-1 alpha-3 → FIPS 10-4 (reverse map; first FIPS wins on collision). */
+export const ISO_TO_FIPS = (() => {
+  /** @type {Record<string, string>} */
+  const m = {};
+  for (const [fips, iso] of Object.entries(FIPS_TO_ISO)) {
+    if (!m[iso]) m[iso] = fips;
+  }
+  return m;
+})();

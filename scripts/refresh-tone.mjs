@@ -14,7 +14,7 @@
 import { readFileSync } from 'node:fs';
 import { BigQuery } from '@google-cloud/bigquery';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { FIPS_TO_ISO } from './fips-iso.js';
+import { FIPS_TO_ISO } from '../src/lib/fips-iso.js';
 
 const SQL_PATH = 'bigquery/aggregate.sql';
 const WINDOW_HOURS = 168;
