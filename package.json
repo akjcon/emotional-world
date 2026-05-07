@@ -1,0 +1,28 @@
+{
+  "name": "emotional-world",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "sample-data": "node scripts/generate-sample.mjs",
+    "refresh-tone": "node scripts/refresh-tone.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-globe.gl": "^2.30.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.665.0",
+    "@google-cloud/bigquery": "^7.9.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "wrangler": "^3.84.0"
+  }
+}
