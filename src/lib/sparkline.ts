@@ -1,12 +1,16 @@
 // Returns SVG markup as a string — used inside the globe.gl polygonLabel
 // HTML tooltip. For the React-rendered modal use components/Sparkline.tsx.
+//
+// The line is stroked with a vertical gradient: green above the zero line,
+// red below. This visually couples the chart to the tone scale.
 
-type Opts = { w?: number; h?: number; color?: string };
+type Opts = { w?: number; h?: number };
+
+let gradCounter = 0;
 
 export function sparklineSvg(values: number[], opts: Opts = {}): string {
   const w = opts.w ?? 100;
   const h = opts.h ?? 28;
-  const color = opts.color ?? 'rgba(255, 255, 255, 0.78)';
   if (values.length < 2) return '';
 
   let min = 0;
@@ -25,12 +29,22 @@ export function sparklineSvg(values: number[], opts: Opts = {}): string {
     if (i > 0) pts += ' ';
     pts += `${px(i).toFixed(1)},${py(values[i]).toFixed(1)}`;
   }
-  const zeroY = py(0).toFixed(1);
+  const zeroY = py(0);
+  const zeroPct = Math.max(0, Math.min(1, zeroY / h));
+
+  const gradId = `tg${++gradCounter}`;
+  const grad = `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="${h}" gradientUnits="userSpaceOnUse">` +
+    `<stop offset="0" stop-color="#22c55e"/>` +
+    `<stop offset="${zeroPct}" stop-color="#22c55e"/>` +
+    `<stop offset="${zeroPct}" stop-color="#ef4444"/>` +
+    `<stop offset="1" stop-color="#ef4444"/>` +
+    `</linearGradient></defs>`;
 
   return (
     `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">` +
-    `<line x1="0" y1="${zeroY}" x2="${w}" y2="${zeroY}" stroke="rgba(255,255,255,0.14)" stroke-width="1" stroke-dasharray="2,3"/>` +
-    `<polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/>` +
+    grad +
+    `<line x1="0" y1="${zeroY.toFixed(1)}" x2="${w}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="2,3"/>` +
+    `<polyline fill="none" stroke="url(#${gradId})" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/>` +
     `</svg>`
   );
 }

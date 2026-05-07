@@ -189,6 +189,12 @@ export function CountryModal({
                       <span>{s.domain}</span>
                       <span aria-hidden="true">·</span>
                       <span>{relativeTime(parseSeenDate(s.seendate))}</span>
+                      {s.language && s.language !== 'English' && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="story-lang">{s.language}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </li>

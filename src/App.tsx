@@ -150,12 +150,6 @@ export function App() {
         : s.change7d < -0.05
           ? 'tt-neg'
           : 'tt-flat';
-    const sparkColor =
-      s.change7d > 0.05
-        ? 'rgba(34, 197, 94, 0.9)'
-        : s.change7d < -0.05
-          ? 'rgba(239, 68, 68, 0.9)'
-          : 'rgba(255, 255, 255, 0.7)';
     const rankLine = r
       ? `<div class="tt-row"><span>#${r.rank} most ${r.side}</span><span class="tt-mute tabular">/ ${r.total}</span></div>`
       : '';
@@ -166,7 +160,7 @@ export function App() {
       `<div class="tt-tone tabular" style="color:${toneColor(s.latest, 1)}">${s.latest.toFixed(2)}</div>` +
       rankLine +
       `<div class="tt-row tabular"><span>7 day change</span><b class="${changeClass}">${sign}${s.change7d.toFixed(2)}</b></div>` +
-      `<div class="tt-spark">${sparklineSvg(s.hours.map((h) => h.tone), { w: 200, h: 30, color: sparkColor })}</div>` +
+      `<div class="tt-spark" aria-label="7-day tone trend">${sparklineSvg(s.hours.map((h) => h.tone), { w: 200, h: 30 })}</div>` +
       `<div class="tt-row tabular"><span>articles / hr</span><b>${s.articleCount}</b></div>` +
       `<div class="tt-hint">click for stories</div>` +
       `</div>`

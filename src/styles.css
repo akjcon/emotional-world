@@ -399,6 +399,16 @@ body {
   margin: 0;
   padding: 12px 0;
 }
+.story-lang {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(91, 141, 239, 0.12);
+  color: #a8bff5;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
 
 /* skeleton state */
 .story-skeleton .story-img {

@@ -1,5 +1,9 @@
 // GDELT DOC 2.0 API — recent articles by source country (FIPS code).
 // CORS-enabled; queried directly from the browser on country click.
+//
+// We prefer English-language articles so non-anglophone countries still
+// surface readable results, and fall back to all languages if there are
+// none. The CountryModal labels non-English stories so the user knows.
 
 export type Story = {
   url: string;
@@ -13,13 +17,13 @@ export type Story = {
 
 const ENDPOINT = 'https://api.gdeltproject.org/api/v2/doc/doc';
 
-export async function fetchStories(
-  fipsCode: string,
-  max = 8,
+async function query(
+  q: string,
+  max: number,
   signal?: AbortSignal,
 ): Promise<Story[]> {
   const params = new URLSearchParams({
-    query: `sourcecountry:${fipsCode}`,
+    query: q,
     format: 'json',
     maxrecords: String(max),
     sort: 'DateDesc',
@@ -29,6 +33,20 @@ export async function fetchStories(
   if (!r.ok) throw new Error(`DOC API ${r.status}`);
   const data = await r.json().catch(() => ({}) as { articles?: Story[] });
   return (data.articles ?? []) as Story[];
+}
+
+export async function fetchStories(
+  fipsCode: string,
+  max = 8,
+  signal?: AbortSignal,
+): Promise<Story[]> {
+  const en = await query(
+    `sourcecountry:${fipsCode} sourcelang:english`,
+    max,
+    signal,
+  );
+  if (en.length > 0) return en;
+  return query(`sourcecountry:${fipsCode}`, max, signal);
 }
 
 export function parseSeenDate(s: string): Date {

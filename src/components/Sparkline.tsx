@@ -1,16 +1,13 @@
+import { useId } from 'react';
+
 type Props = {
   values: number[];
   width?: number;
   height?: number;
-  color?: string;
 };
 
-export function Sparkline({
-  values,
-  width = 280,
-  height = 80,
-  color = '#f5f5f5',
-}: Props) {
+export function Sparkline({ values, width = 280, height = 80 }: Props) {
+  const id = useId();
   if (values.length < 2) return null;
 
   let min = 0;
@@ -27,7 +24,9 @@ export function Sparkline({
   const points = values
     .map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`)
     .join(' ');
-  const zeroY = py(0).toFixed(1);
+  const zeroY = py(0);
+  const zeroPct = Math.max(0, Math.min(1, zeroY / height));
+  const gradId = `tone-grad-${id.replace(/:/g, '')}`;
 
   return (
     <svg
@@ -38,19 +37,34 @@ export function Sparkline({
       aria-hidden="true"
       style={{ display: 'block' }}
     >
+      <defs>
+        <linearGradient
+          id={gradId}
+          x1={0}
+          y1={0}
+          x2={0}
+          y2={height}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset={0} stopColor="#22c55e" />
+          <stop offset={zeroPct} stopColor="#22c55e" />
+          <stop offset={zeroPct} stopColor="#ef4444" />
+          <stop offset={1} stopColor="#ef4444" />
+        </linearGradient>
+      </defs>
       <line
         x1={0}
         y1={zeroY}
         x2={width}
         y2={zeroY}
-        stroke="rgba(255,255,255,0.14)"
+        stroke="rgba(255,255,255,0.18)"
         strokeWidth={1}
         strokeDasharray="2,3"
       />
       <polyline
         fill="none"
-        stroke={color}
-        strokeWidth={1.75}
+        stroke={`url(#${gradId})`}
+        strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
         points={points}
