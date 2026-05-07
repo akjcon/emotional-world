@@ -6,3 +6,4 @@ dist
 .env
 gcp-sa.json
 .vercel
+*.tsbuildinfo
