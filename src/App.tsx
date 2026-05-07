@@ -209,7 +209,7 @@ export function App() {
       `<div class="tt-tone tabular" style="color:${toneColor(s.latest, 1)}">${s.latest.toFixed(2)}</div>` +
       rankLine +
       `<div class="tt-row tabular"><span>7 day change</span><b class="${changeClass}">${sign}${s.change7d.toFixed(2)}</b></div>` +
-      `<div class="tt-spark" aria-label="7-day tone trend">${sparklineSvg(s.hours.map((h) => h.tone), { w: 200, h: 30 })}</div>` +
+      `<div class="tt-spark" aria-label="7-day tone trend">${sparklineSvg(s.smoothedTones, { w: 200, h: 30 })}</div>` +
       `<div class="tt-row tabular"><span>articles / hr</span><b>${s.articleCount}</b></div>` +
       `<div class="tt-hint">click for stories</div>` +
       `</div>`

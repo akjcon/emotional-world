@@ -125,7 +125,7 @@ export function CountryModal({
         </section>
 
         <section className="modal-spark" aria-label="7-day tone trend">
-          <Sparkline values={stats.hours.map((h) => h.tone)} width={520} height={96} />
+          <Sparkline values={stats.smoothedTones} width={520} height={96} />
           <div className="spark-axis tabular">
             <span>{new Date(stats.hours[0].t).toLocaleDateString()}</span>
             <span>now</span>
