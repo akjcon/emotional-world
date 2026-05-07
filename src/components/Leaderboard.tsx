@@ -68,68 +68,75 @@ export function Leaderboard({ features, stats, onFly }: Props) {
   }, [stats, lookup]);
 
   return (
-    <>
+    <aside
+      className={`leaderboard${open ? ' is-open' : ''}`}
+      aria-label="Leaderboards"
+    >
       <button
         type="button"
-        className="leaderboard-toggle"
-        aria-label={open ? 'Hide leaderboards' : 'Show leaderboards'}
-        aria-expanded={open}
+        className="lb-header"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
       >
-        {open ? '×' : '🏆'}
+        <span className="lb-header-title">24hr Leaderboard</span>
+        <span className="lb-caret" aria-hidden="true">
+          ▾
+        </span>
       </button>
 
-      <aside
-        className={`leaderboard${open ? ' is-open' : ''}`}
-        aria-label="Leaderboards"
-        aria-hidden={!open}
-      >
-        <Section title="Biggest 24h moves">
-          {movers.length === 0 ? (
-            <Empty>not enough data yet</Empty>
-          ) : (
-            movers.map((e, i) => (
+      <div className="lb-body-wrap">
+        <div className="lb-body">
+          <Section title="Biggest 24h moves">
+            {movers.length === 0 ? (
+              <Empty>not enough data yet</Empty>
+            ) : (
+              movers.map((e, i) => (
+                <Row
+                  key={e.iso}
+                  rank={i + 1}
+                  entry={e}
+                  valueLabel={`${e.value > 0 ? '+' : ''}${e.value.toFixed(2)}`}
+                  valueColor={
+                    e.value > 0.05
+                      ? '#22c55e'
+                      : e.value < -0.05
+                        ? '#ef4444'
+                        : '#9ca3af'
+                  }
+                  onClick={() => onFly(e.iso)}
+                />
+              ))
+            )}
+          </Section>
+
+          <Section title="Most negative">
+            {negative.map((e, i) => (
               <Row
                 key={e.iso}
                 rank={i + 1}
                 entry={e}
-                valueLabel={`${e.value > 0 ? '+' : ''}${e.value.toFixed(2)}`}
-                valueColor={
-                  e.value > 0.05 ? '#22c55e' : e.value < -0.05 ? '#ef4444' : '#9ca3af'
-                }
+                valueLabel={e.value.toFixed(2)}
+                valueColor={toneColor(e.value, 1)}
                 onClick={() => onFly(e.iso)}
               />
-            ))
-          )}
-        </Section>
+            ))}
+          </Section>
 
-        <Section title="Most negative">
-          {negative.map((e, i) => (
-            <Row
-              key={e.iso}
-              rank={i + 1}
-              entry={e}
-              valueLabel={e.value.toFixed(2)}
-              valueColor={toneColor(e.value, 1)}
-              onClick={() => onFly(e.iso)}
-            />
-          ))}
-        </Section>
-
-        <Section title="Most positive">
-          {positive.map((e, i) => (
-            <Row
-              key={e.iso}
-              rank={i + 1}
-              entry={e}
-              valueLabel={`+${e.value.toFixed(2)}`}
-              valueColor={toneColor(e.value, 1)}
-              onClick={() => onFly(e.iso)}
-            />
-          ))}
-        </Section>
-      </aside>
-    </>
+          <Section title="Most positive">
+            {positive.map((e, i) => (
+              <Row
+                key={e.iso}
+                rank={i + 1}
+                entry={e}
+                valueLabel={`+${e.value.toFixed(2)}`}
+                valueColor={toneColor(e.value, 1)}
+                onClick={() => onFly(e.iso)}
+              />
+            ))}
+          </Section>
+        </div>
+      </div>
+    </aside>
   );
 }
 
