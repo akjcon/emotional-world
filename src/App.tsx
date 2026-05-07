@@ -231,7 +231,6 @@ export function App() {
 
       {selected && (
         <CountryModal
-          iso={isoOf(selected.feature)}
           iso2={iso2Of(selected.feature)}
           name={
             selected.feature.properties.ADMIN ??

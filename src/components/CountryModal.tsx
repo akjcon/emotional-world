@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { toneColor, type CountryStats } from '../data';
 import { isoToFlag } from '../lib/flags';
-import { ISO_TO_FIPS } from '../lib/fips-iso.js';
 import { type Ranking } from '../lib/rankings';
 import {
   fetchStories,
@@ -12,7 +11,6 @@ import {
 import { Sparkline } from './Sparkline';
 
 type Props = {
-  iso: string;
   iso2?: string;
   name: string;
   stats: CountryStats;
@@ -21,7 +19,6 @@ type Props = {
 };
 
 export function CountryModal({
-  iso,
   iso2,
   name,
   stats,
@@ -33,20 +30,15 @@ export function CountryModal({
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const fips = ISO_TO_FIPS[iso];
-    if (!fips) {
-      setError('No GDELT source-country code is mapped for this region.');
-      return;
-    }
     const ctrl = new AbortController();
-    fetchStories(fips, 8, ctrl.signal)
+    fetchStories(name, 8, ctrl.signal)
       .then(setStories)
       .catch((e: unknown) => {
         if ((e as { name?: string })?.name === 'AbortError') return;
         setError("Couldn't load stories.");
       });
     return () => ctrl.abort();
-  }, [iso]);
+  }, [name]);
 
   useEffect(() => {
     closeBtnRef.current?.focus();
@@ -161,8 +153,12 @@ export function CountryModal({
           )}
           {stories && stories.length > 0 && (
             <ul className="story-list">
-              {stories.map((s) => (
-                <li key={s.url} className="story">
+              {stories.map((s, i) => (
+                <li
+                  key={s.url}
+                  className="story"
+                  style={{ ['--i' as string]: i } as React.CSSProperties}
+                >
                   {s.socialimage ? (
                     <img
                       src={s.socialimage}

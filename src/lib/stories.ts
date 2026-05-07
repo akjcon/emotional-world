@@ -1,9 +1,13 @@
-// GDELT DOC 2.0 API — recent articles by source country (FIPS code).
+// GDELT DOC 2.0 API — recent English-language articles ABOUT a country.
 // CORS-enabled; queried directly from the browser on country click.
 //
-// We prefer English-language articles so non-anglophone countries still
-// surface readable results, and fall back to all languages if there are
-// none. The CountryModal labels non-English stories so the user knows.
+// We search by country name as a quoted phrase + sourcelang:english + sort
+// by HybridRel (relevance). This surfaces world coverage of the country
+// (which is what the tone score actually reflects) rather than local
+// journalism that happens to be published in English. Single round-trip.
+//
+// Results are memoized for the lifetime of the page so re-opening a
+// country's modal is instant.
 
 export type Story = {
   url: string;
@@ -16,6 +20,7 @@ export type Story = {
 };
 
 const ENDPOINT = 'https://api.gdeltproject.org/api/v2/doc/doc';
+const cache = new Map<string, Story[]>();
 
 async function query(
   q: string,
@@ -26,7 +31,7 @@ async function query(
     query: q,
     format: 'json',
     maxrecords: String(max),
-    sort: 'DateDesc',
+    sort: 'HybridRel',
     mode: 'ArtList',
   });
   const r = await fetch(`${ENDPOINT}?${params}`, { signal });
@@ -36,17 +41,20 @@ async function query(
 }
 
 export async function fetchStories(
-  fipsCode: string,
+  countryName: string,
   max = 8,
   signal?: AbortSignal,
 ): Promise<Story[]> {
-  const en = await query(
-    `sourcecountry:${fipsCode} sourcelang:english`,
+  const key = `${countryName}|${max}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const stories = await query(
+    `"${countryName}" sourcelang:english`,
     max,
     signal,
   );
-  if (en.length > 0) return en;
-  return query(`sourcecountry:${fipsCode}`, max, signal);
+  cache.set(key, stories);
+  return stories;
 }
 
 export function parseSeenDate(s: string): Date {
